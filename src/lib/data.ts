@@ -9,15 +9,25 @@ import {
   setDoc,
   where,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { auth, db } from './firebase'
 import { isWorkingDay } from './capacity'
 import { datesMatchingWeeklyPattern, getAdjacentSprint, getSprintForDate } from './sprints'
 import type { AbsenceReason, AvailabilityEntry, Member, Team } from '../types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+// The one shared public-demo login (see the demo seed script) only ever reads documents
+// tagged `demo: true` — enforced here (so queries stay valid under firestore.rules, which
+// rejects a list query it can't prove is scoped this way) and mirrored in firestore.rules
+// itself, which denies the demo account read access to anything not tagged `demo: true`.
+const DEMO_EMAIL = 'demo@voorbeeld.nl'
+function isDemoCaller(): boolean {
+  return auth.currentUser?.email === DEMO_EMAIL
+}
+
 export function listenTeams(onChange: (teams: Team[]) => void) {
-  const q = query(collection(db, 'teams'), orderBy('order'))
+  const constraints = isDemoCaller() ? [where('demo', '==', true), orderBy('order')] : [orderBy('order')]
+  const q = query(collection(db, 'teams'), ...constraints)
   return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Team, 'id'>) })))
   })
@@ -30,7 +40,9 @@ export function listenTeam(teamId: string, onChange: (team: Team | null) => void
 }
 
 export function listenMembers(teamId: string, onChange: (members: Member[]) => void) {
-  const q = query(collection(db, 'members'), where('teamIds', 'array-contains', teamId))
+  const constraints = [where('teamIds', 'array-contains', teamId)]
+  if (isDemoCaller()) constraints.push(where('demo', '==', true))
+  const q = query(collection(db, 'members'), ...constraints)
   return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => d.data() as Member))
   })
@@ -38,7 +50,9 @@ export function listenMembers(teamId: string, onChange: (members: Member[]) => v
 
 /** Everyone in the cluster, independent of team. */
 export function listenAllMembers(onChange: (members: Member[]) => void) {
-  return onSnapshot(collection(db, 'members'), (snap) => {
+  const constraints = isDemoCaller() ? [where('demo', '==', true)] : []
+  const q = query(collection(db, 'members'), ...constraints)
+  return onSnapshot(q, (snap) => {
     onChange(snap.docs.map((d) => d.data() as Member))
   })
 }

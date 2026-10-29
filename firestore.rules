@@ -10,6 +10,13 @@ service cloud.firestore {
       return role in ['developer', 'tester', 'qa', 'designer', 'po', 'sm', 'ba', 'pdm', 'mo', 'architect'];
     }
 
+    // The one shared public-demo login only ever sees data explicitly tagged `demo: true`
+    // (see the demo seed script) — keeps the real cluster's teams/members private from the
+    // public demo account. Every other signed-in user is unaffected by this check.
+    function isDemoCaller() {
+      return request.auth.token.email == 'demo@voorbeeld.nl';
+    }
+
     // Caller's own `isAdmin` flag. `isAdmin` can only ever be flipped from the Firestore
     // console or an admin script (never through the app) — see the members rule below.
     function isAdminCaller() {
@@ -20,7 +27,7 @@ service cloud.firestore {
     // Teams are seeded/managed by an admin (Firebase console, an admin script, or an
     // admin signed in through the app).
     match /teams/{teamId} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (!isDemoCaller() || resource.data.demo == true);
       allow write: if isAdminCaller();
     }
 
@@ -28,7 +35,7 @@ service cloud.firestore {
     // role, at least one team, `isAdmin` unchanged — never self-granted). An admin can
     // create/update ANY profile, with no further restriction.
     match /members/{uid} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (!isDemoCaller() || resource.data.demo == true);
       allow create: if isAdminCaller()
         || (signedIn()
           && request.auth.uid == uid
@@ -46,9 +53,10 @@ service cloud.firestore {
 
     // Everyone can see availability. A member can write their own entry; an admin can
     // write anyone's. One shared calendar per person, independent of which team(s)
-    // they're in.
+    // they're in. The demo account can only read entries for demo-tagged members.
     match /availability/{sprintNumber}/entries/{uid} {
-      allow read: if signedIn();
+      allow read: if signedIn()
+        && (!isDemoCaller() || get(/databases/$(database)/documents/members/$(uid)).data.demo == true);
       allow create, update: if signedIn() && (request.auth.uid == uid || isAdminCaller());
       allow delete: if isAdminCaller();
     }
