@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", Inter, system-ui, sans-serif;
+
+  --color-canvas: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+
+  --color-ink: #1d1d1f;
+  --color-muted: #6e6e73;
+
+  --color-accent: #0071e3;
+  --color-accent-hover: #0077ed;
+
+  --color-available: #30d158;
+  --color-available-soft: #e5f9ea;
+  --color-unavailable: #ff3b30;
+  --color-unavailable-soft: #ffece8;
+
+  /* Role palette — fixed categorical order, validated with the dataviz palette checker
+     (scripts/validate_palette.js) against this app's light/dark surfaces. */
+  --color-role-developer: #2a78d6;
+  --color-role-tester: #eb6834;
+  --color-role-designer: #1baf7a;
+  --color-role-po: #eda100;
+  --color-role-sm: #e87ba4;
+  --color-role-ba: #008300;
+  --color-role-pdm: #4a3aa7;
+  --color-role-mo: #e34948;
+  /* Architect is the 9th role — categorical palette is validated for 8, so it rides the
+     neutral ink/muted ramp instead of an invented hue (dataviz rule: fold the 9th into
+     a non-categorical treatment rather than guess a color). */
+  --color-role-architect: var(--color-muted);
+  /* QA is the 10th role and a close sibling of Tester, so it shares that hue rather than
+     inventing another unvalidated color or colliding with Architect's gray. */
+  --color-role-qa: var(--color-role-tester);
+
+  /* Status palette (fixed, not themed) — same steps clear 3:1 on both surfaces. */
+  --color-status-warning: #fab219;
+  --color-status-critical: #d03b3b;
+
+  --color-border: rgba(0, 0, 0, 0.08);
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.04), 0 16px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* Runtime overrides: utilities reference these var()s, so redefining them
+   here re-themes every utility class automatically — no dark: variants needed. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #000000;
+    --color-surface: #1c1c1e;
+    --color-surface-raised: #2c2c2e;
+
+    --color-ink: #f5f5f7;
+    --color-muted: #98989d;
+
+    --color-accent: #2997ff;
+    --color-accent-hover: #4dabff;
+
+    --color-available-soft: #0f2e17;
+    --color-unavailable-soft: #3a1210;
+
+    --color-role-developer: #3987e5;
+    --color-role-tester: #d95926;
+    --color-role-designer: #199e70;
+    --color-role-po: #c98500;
+    --color-role-sm: #d55181;
+    --color-role-ba: #008300;
+    --color-role-pdm: #9085e9;
+    --color-role-mo: #e66767;
+
+    --color-border: rgba(255, 255, 255, 0.12);
+
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    letter-spacing: -0.011em;
+  }
+}
+
+::selection {
+  background: var(--color-accent);
+  color: white;
+}

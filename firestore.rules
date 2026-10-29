@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validRole(role) {
+      return role in ['developer', 'tester', 'qa', 'designer', 'po', 'sm', 'ba', 'pdm', 'mo', 'architect'];
+    }
+
+    // Caller's own `isAdmin` flag. `isAdmin` can only ever be flipped from the Firestore
+    // console or an admin script (never through the app) — see the members rule below.
+    function isAdminCaller() {
+      return signedIn()
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Teams are seeded/managed by an admin (Firebase console, an admin script, or an
+    // admin signed in through the app).
+    match /teams/{teamId} {
+      allow read: if signedIn();
+      allow write: if isAdminCaller();
+    }
+
+    // Everyone can see the roster. A member can create/update their own profile (valid
+    // role, at least one team, `isAdmin` unchanged — never self-granted). An admin can
+    // create/update ANY profile, with no further restriction.
+    match /members/{uid} {
+      allow read: if signedIn();
+      allow create: if isAdminCaller()
+        || (signedIn()
+          && request.auth.uid == uid
+          && validRole(request.resource.data.role)
+          && request.resource.data.teamIds.size() > 0
+          && request.resource.data.isAdmin == false);
+      allow update: if isAdminCaller()
+        || (signedIn()
+          && request.auth.uid == uid
+          && validRole(request.resource.data.role)
+          && request.resource.data.teamIds.size() > 0
+          && request.resource.data.isAdmin == resource.data.isAdmin);
+      allow delete: if isAdminCaller();
+    }
+
+    // Everyone can see availability. A member can write their own entry; an admin can
+    // write anyone's. One shared calendar per person, independent of which team(s)
+    // they're in.
+    match /availability/{sprintNumber}/entries/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && (request.auth.uid == uid || isAdminCaller());
+      allow delete: if isAdminCaller();
+    }
+  }
+}
