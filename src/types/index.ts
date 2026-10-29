@@ -61,10 +61,12 @@ export interface WorkPatternDay {
 
 /** A recurring schedule of 1–4 alternating weeks (cycle length 1 = the same every week).
  *  `anchorDate` is any date that falls in "week 1" of the cycle — used to work out which
- *  pattern week applies to an arbitrary calendar date (irrelevant when weeks.length is 1). */
+ *  pattern week applies to an arbitrary calendar date (irrelevant when there's only 1 week).
+ *  `weeks` is keyed by week index as a string ("0", "1", …) rather than a plain array,
+ *  because Firestore rejects an array nested directly inside another array. */
 export interface WorkPattern {
   anchorDate: string
-  weeks: WorkPatternDay[][]
+  weeks: Record<string, WorkPatternDay[]>
 }
 
 export const DEFAULT_DAY_HOURS = 8
@@ -72,7 +74,7 @@ export const DEFAULT_DAY_HOURS = 8
 /** Fulltime, every week the same: Mon–Fri, 8h/day. */
 export const DEFAULT_WORK_PATTERN: WorkPattern = {
   anchorDate: '2026-01-05',
-  weeks: [WEEKDAY_ORDER.map((weekday) => ({ weekday, hours: DEFAULT_DAY_HOURS }))],
+  weeks: { '0': WEEKDAY_ORDER.map((weekday) => ({ weekday, hours: DEFAULT_DAY_HOURS })) },
 }
 
 export interface Member {

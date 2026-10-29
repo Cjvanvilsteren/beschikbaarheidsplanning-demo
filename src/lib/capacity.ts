@@ -27,7 +27,7 @@ function mondayOfWeek(dateIso: string): number {
 }
 
 function patternWeekIndex(pattern: WorkPattern, dateIso: string): number {
-  const n = pattern.weeks.length
+  const n = Object.keys(pattern.weeks).length
   if (n <= 1) return 0
   const weeksDiff = Math.round((mondayOfWeek(dateIso) - mondayOfWeek(pattern.anchorDate)) / (7 * DAY_MS))
   return ((weeksDiff % n) + n) % n
@@ -39,7 +39,7 @@ export function hoursForDay(member: Member, date: string): number {
   const weekday = new Date(`${date}T00:00:00Z`).getUTCDay()
   if (weekday === 0 || weekday === 6) return 0
   const pattern = member.workPattern ?? DEFAULT_WORK_PATTERN
-  const week = pattern.weeks[patternWeekIndex(pattern, date)] ?? []
+  const week = pattern.weeks[String(patternWeekIndex(pattern, date))] ?? []
   return week.find((d) => d.weekday === weekday)?.hours ?? 0
 }
 

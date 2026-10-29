@@ -1,5 +1,6 @@
 import { DEFAULT_DAY_HOURS, WEEKDAY_LABELS, WEEKDAY_ORDER, type WorkPattern } from '../types'
 
+
 interface WorkPatternEditorProps {
   value: WorkPattern
   onChange: (next: WorkPattern) => void
@@ -10,30 +11,32 @@ const CYCLE_OPTIONS = [1, 2, 3, 4]
 /** 1–4 alternating pattern weeks, each with an hours-per-weekday grid (0 = not working
  *  that day). Cycle length 1 is the common case: the same every week. */
 export function WorkPatternEditor({ value, onChange }: WorkPatternEditorProps) {
-  const cycleLength = value.weeks.length
+  const cycleLength = Object.keys(value.weeks).length
+  const weekIndexes = Array.from({ length: cycleLength }, (_, i) => i)
 
   function setCycleLength(n: number) {
-    const weeks = Array.from(
-      { length: n },
-      (_, i) => value.weeks[i] ?? WEEKDAY_ORDER.map((weekday) => ({ weekday, hours: DEFAULT_DAY_HOURS })),
-    )
+    const weeks: WorkPattern['weeks'] = {}
+    for (let i = 0; i < n; i++) {
+      weeks[String(i)] =
+        value.weeks[String(i)] ?? WEEKDAY_ORDER.map((weekday) => ({ weekday, hours: DEFAULT_DAY_HOURS }))
+    }
     onChange({ ...value, weeks })
   }
 
   function hoursFor(weekIndex: number, weekday: number): number {
-    return value.weeks[weekIndex]?.find((d) => d.weekday === weekday)?.hours ?? 0
+    return value.weeks[String(weekIndex)]?.find((d) => d.weekday === weekday)?.hours ?? 0
   }
 
   function setHours(weekIndex: number, weekday: number, hours: number) {
-    const weeks = value.weeks.map((week, i) => {
-      if (i !== weekIndex) return week
-      if (hours <= 0) return week.filter((d) => d.weekday !== weekday)
-      if (week.some((d) => d.weekday === weekday)) {
-        return week.map((d) => (d.weekday === weekday ? { ...d, hours } : d))
-      }
-      return [...week, { weekday, hours }]
-    })
-    onChange({ ...value, weeks })
+    const key = String(weekIndex)
+    const week = value.weeks[key] ?? []
+    const nextWeek =
+      hours <= 0
+        ? week.filter((d) => d.weekday !== weekday)
+        : week.some((d) => d.weekday === weekday)
+          ? week.map((d) => (d.weekday === weekday ? { ...d, hours } : d))
+          : [...week, { weekday, hours }]
+    onChange({ ...value, weeks: { ...value.weeks, [key]: nextWeek } })
   }
 
   return (
@@ -79,7 +82,7 @@ export function WorkPatternEditor({ value, onChange }: WorkPatternEditorProps) {
             </tr>
           </thead>
           <tbody>
-            {value.weeks.map((_, weekIndex) => (
+            {weekIndexes.map((weekIndex) => (
               <tr key={weekIndex}>
                 <td className="pr-2 text-[12px] font-medium text-muted">
                   {cycleLength > 1 ? `Week ${weekIndex + 1}` : 'Uren/dag'}
